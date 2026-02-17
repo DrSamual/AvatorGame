@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aviator Pro - Login System</title>
+    <style>
+        :root {
+            --bg-black: #000000;
+            --panel-grey: #1c1d20;
+            --aviator-red: #d11b1b;
+            --green-bet: #28a745;
+            --gold-cashout: #d99a07;
+            --multiplier-blue: #64b5f6;
+            --admin-purple: #9333ea;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-black);
+            color: white;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- লগইন পেজ স্টাইল --- */
+        #login-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-black);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 5000;
+            padding: 20px;
+        }
+
+        .login-box {
+            width: 100%;
+            max-width: 350px;
+            background: var(--panel-grey);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid #333;
+            text-align: center;
+        }
+
+        .login-box h1 { color: var(--aviator-red); margin-bottom: 20px; }
+        .login-input {
+            width: 100%; padding: 12px; margin: 10px 0;
+            background: #000; border: 1px solid #444;
+            color: white; border-radius: 8px; outline: none;
+        }
+        .login-btn {
+            width: 100%; padding: 12px; background: var(--aviator-red);
+            border: none; color: white; border-radius: 8px;
+            font-weight: bold; cursor: pointer; margin-top: 10px;
+        }
+
+        /* --- মেইন গেম কন্টেইনার --- */
+        #app-container {
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            display: none; /* লগইন না হওয়া পর্যন্ত লুকানো */
+            flex-direction: column;
+            padding: 10px;
+            position: relative;
+        }
+
+        /* এডমিন প্যানেল ফ্লোটিং */
+        #admin-panel {
+            position: absolute; top: 10%; left: 5%; width: 90%;
+            background: #111; border: 2px solid var(--admin-purple);
+            border-radius: 15px; padding: 20px; z-index: 2000;
+            display: none; box-shadow: 0 0 20px rgba(147, 51, 234, 0.5);
+        }
+
+        /* গেমের বাকি স্টাইল (আগের মতই) */
+        #history-container { padding: 5px; margin-bottom: 5px; min-height: 50px; }
+        #history-bar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        .hist-item { font-size: 13px; font-weight: bold; color: var(--multiplier-blue); }
+        .header { display: flex; justify-content: space-between; padding: 5px; font-weight: bold; }
+        #game-screen { background: #090909; border-radius: 15px; flex-grow: 1; max-height: 280px; position: relative; overflow: hidden; border: 1px solid #333; margin-bottom: 10px; }
+        #main-multiplier { position: absolute; top: 25%; width: 100%; text-align: center; font-size: 3.5rem; font-weight: 900; z-index: 5; }
+        #wait-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 20; }
+        .loader-bar { width: 70%; height: 5px; background: #333; border-radius: 10px; margin-top: 10px; overflow: hidden; }
+        #loader-fill { width: 0%; height: 100%; background: var(--aviator-red); }
+        .bet-panel { background: var(--panel-grey); border-radius: 15px; padding: 15px; border: 1px solid #333; }
+        .bet-row { display: flex; gap: 10px; height: 60px; }
+        .amount-control { background: #000; border-radius: 10px; display: flex; align-items: center; padding: 2px 10px; border: 1px solid #444; flex: 1; }
+        .amount-control input { background: transparent; border: none; color: white; text-align: center; width: 100%; font-weight: bold; font-size: 1.2rem; outline: none; }
+        .btn-action { flex: 1; height: 100%; border: none; border-radius: 10px; font-size: 1.2rem; font-weight: bold; color: white; cursor: pointer; }
+        #betBtn { background: var(--green-bet); }
+        #cashBtn { background: var(--gold-cashout); display: none; }
+        #win-popup { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0); background: rgba(40, 167, 69, 0.95); padding: 15px; border-radius: 20px; text-align: center; z-index: 100; transition: 0.3s; min-width: 180px; }
+        #win-popup.show { transform: translate(-50%, -50%) scale(1); }
+        .flew { color: var(--aviator-red) !important; }
+        #admin-tag { display: none; color: var(--admin-purple); font-size: 10px; border: 1px solid var(--admin-purple); padding: 2px 5px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="login-box">
+        <h1>AVIATOR</h1>
+        <input type="text" id="login-id" class="login-input" placeholder="User ID">
+        <input type="password" id="login-pass" class="login-input" placeholder="Password">
+        <button class="login-btn" onclick="handleLogin()">LOGIN</button>
+        <p style="font-size: 10px; color: #555; margin-top: 15px;">Developed by Abdullah Al Galib</p>
+    </div>
+</div>
+
+<div id="app-container">
+    <div id="admin-panel">
+        <h2 style="color: var(--admin-purple); margin-top:0;">Admin Mode</h2>
+        <label style="font-size: 12px;">Win Probability (%):</label>
+        <input type="number" id="win-ratio" class="login-input" placeholder="Set 0-100">
+        <label style="font-size: 12px;">Next Crash Force:</label>
+        <input type="number" id="next-crash" class="login-input" placeholder="e.g. 2.50">
+        <button class="login-btn" style="background: var(--admin-purple);" onclick="saveAdmin()">SAVE SETTINGS</button>
+        <button class="login-btn" style="background: #333;" onclick="document.getElementById('admin-panel').style.display='none'">CLOSE</button>
+    </div>
+
+    <div id="history-container"><div id="history-bar"></div></div>
+    
+    <div id="win-popup">
+        <div id="win-amount-text" style="font-size: 1.6rem; font-weight: 900;">0.00 BDT</div>
+    </div>
+
+    <div class="header">
+        <div>
+            <span style="color: var(--aviator-red); font-weight: 900;">AVIATOR</span>
+            <span id="admin-tag">ADMIN</span>
+        </div>
+        <span><span id="balance-display">1000.00</span> BDT</span>
+    </div>
+
+    <div id="game-screen">
+        <div id="wait-overlay">
+            <div class="loader-bar"><div id="loader-fill"></div></div>
+        </div>
+        <div id="main-multiplier">1.00x</div>
+        <canvas id="flightCanvas"></canvas>
+    </div>
+
+    <div class="bet-panel">
+        <div class="bet-row">
+            <div class="amount-control">
+                <button style="background:none; border:none; color:white; font-size:20px;" onclick="adjust(-1)">−</button>
+                <input type="number" id="bet-amount" value="10">
+                <button style="background:none; border:none; color:white; font-size:20px;" onclick="adjust(1)">+</button>
+            </div>
+            <button class="btn-action" id="betBtn">BET</button>
+            <button class="btn-action" id="cashBtn">CASH OUT</button>
+        </div>
+        <button id="open-admin-btn" style="display:none; width:100%; margin-top:10px; background:none; border:1px solid #444; color:#444; font-size:10px; cursor:pointer; padding:5px;" onclick="document.getElementById('admin-panel').style.display='block'">OPEN MASTER CONTROL</button>
+        <div id="round-id-display" style="text-align: center; font-size: 9px; color: #444; margin-top: 10px;"></div>
+    </div>
+</div>
+
+<script>
+    // লগইন লজিক
+    function handleLogin() {
+        const id = document.getElementById('login-id').value;
+        const pass = document.getElementById('login-pass').value;
+
+        if (id === "admin" && pass === "1234") {
+            initGame(true);
+        } else if (id === "player" && pass === "1122") {
+            initGame(false);
+        } else {
+            alert("ভুল আইডি বা পাসওয়ার্ড!");
+        }
+    }
+
+    function initGame(isAdmin) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-container').style.display = 'flex';
+        
+        if (isAdmin) {
+            document.getElementById('admin-tag').style.display = 'inline-block';
+            document.getElementById('open-admin-btn').style.display = 'block';
+        }
+        startAutoCycle();
+    }
+
+    // গেম লজিক (সব আগের মতই থাকবে, শুধু সংরক্ষিত)
+    let balance = 1000.00;
+    let currentBet = 0;
+    let betPlaced = false;
+    let multiplier = 1.00;
+    let isRunning = false;
+    let crashPoint = 0;
+    let startTime;
+    let winRatio = 50;
+    let adminNextCrash = null;
+
+    const canvas = document.getElementById('flightCanvas');
+    const ctx = canvas.getContext('2d');
+    const multDisplay = document.getElementById('main-multiplier');
+    const balanceDisplay = document.getElementById('balance-display');
+    const betInput = document.getElementById('bet-amount');
+    const waitOverlay = document.getElementById('wait-overlay');
+    const loaderFill = document.getElementById('loader-fill');
+    const winPopup = document.getElementById('win-popup');
+    const betBtn = document.getElementById('betBtn');
+    const cashBtn = document.getElementById('cashBtn');
+    const historyBar = document.getElementById('history-bar');
+
+    function saveAdmin() {
+        let r = document.getElementById('win-ratio').value;
+        let c = document.getElementById('next-crash').value;
+        if(r !== "") winRatio = parseInt(r);
+        if(c !== "") adminNextCrash = parseFloat(c);
+        document.getElementById('admin-panel').style.display = 'none';
+        alert("Settings Saved!");
+    }
+
+    function adjust(v) { betInput.value = Math.max(1, parseInt(betInput.value) + v); }
+
+    function startAutoCycle() {
+        betPlaced = false; betBtn.disabled = false; betBtn.innerText = "BET";
+        betBtn.style.display = "block"; cashBtn.style.display = "none";
+        waitOverlay.style.display = "flex";
+        document.getElementById('round-id-display').innerText = "ROUND ID: " + Math.random().toString(16).slice(2, 18).toUpperCase();
+
+        let progress = 0;
+        let waitInterval = setInterval(() => {
+            progress += 2; loaderFill.style.width = progress + "%";
+            if (progress >= 100) { clearInterval(waitInterval); waitOverlay.style.display = "none"; loaderFill.style.width = "0%"; launchFlight(); }
+        }, 100);
+    }
+
+    betBtn.onclick = () => {
+        let amt = parseFloat(betInput.value);
+        if (amt > balance) return;
+        balance -= amt; currentBet = amt; betPlaced = true;
+        balanceDisplay.innerText = balance.toFixed(2);
+        betBtn.disabled = true; betBtn.innerText = "WAITING...";
+    };
+
+    function launchFlight() {
+        if (adminNextCrash) {
+            crashPoint = adminNextCrash; adminNextCrash = null;
+        } else {
+            crashPoint = (Math.random() * 100 < winRatio) ? (1.5 + Math.random() * 5).toFixed(2) : (1.0 + Math.random() * 0.4).toFixed(2);
+        }
+        multiplier = 1.00; isRunning = true; startTime = Date.now();
+        if (betPlaced) { betBtn.style.display = "none"; cashBtn.style.display = "block"; }
+        multDisplay.classList.remove('flew');
+        updateFlight();
+    }
+
+    function updateFlight() {
+        if (!isRunning) return;
+        let elapsed = (Date.now() - startTime) / 1000;
+        multiplier = Math.pow(1.08, elapsed * 2.2);
+        multDisplay.innerText = multiplier.toFixed(2) + "x";
+        draw();
+        if (multiplier >= crashPoint) {
+            isRunning = false; multDisplay.innerText = "FLEW AWAY!"; multDisplay.classList.add('flew');
+            addHistory(multiplier.toFixed(2)); setTimeout(startAutoCycle, 3000);
+        } else {
+            requestAnimationFrame(updateFlight);
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let centerX = canvas.width / 2, centerY = canvas.height / 2;
+        ctx.beginPath(); ctx.strokeStyle = "#d11b1b"; ctx.lineWidth = 5;
+        ctx.moveTo(0, canvas.height); ctx.quadraticCurveTo(centerX / 1.5, canvas.height, centerX, centerY);
+        ctx.stroke(); ctx.font = "45px Arial"; ctx.fillText("✈️", centerX - 20, centerY + 15);
+    }
+
+    cashBtn.onclick = () => {
+        if (isRunning && betPlaced) {
+            let win = currentBet * multiplier; balance += win; betPlaced = false;
+            balanceDisplay.innerText = balance.toFixed(2);
+            document.getElementById('win-amount-text').innerText = win.toFixed(2) + " BDT";
+            winPopup.classList.add('show');
+            setTimeout(() => winPopup.classList.remove('show'), 2000);
+            cashBtn.style.display = "none"; betBtn.style.display = "block"; betBtn.disabled = true;
+        }
+    };
+
+    function addHistory(val) {
+        let item = document.createElement('span'); item.className = 'hist-item'; item.innerText = val + "x";
+        if (val > 2) item.style.color = "#9333ea";
+        historyBar.prepend(item); if (historyBar.children.length > 10) historyBar.removeChild(historyBar.lastChild);
+    }
+
+    window.addEventListener('resize', () => {
+        canvas.width = canvas.parentNode.clientWidth;
+        canvas.height = canvas.parentNode.clientHeight;
+    });
+    canvas.width = 400; canvas.height = 280; // ইনিশিয়াল সাইজ
+</script>
+
+</body>
+</html>
